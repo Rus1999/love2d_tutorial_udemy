@@ -1,8 +1,11 @@
 -- variable
+-- global
 message = 0
 word = "Rus"
 chicken = 10
 output = chicken + 1
+-- local
+local var = "I'm local variable"
 
 
 -- while loop
