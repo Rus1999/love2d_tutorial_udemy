@@ -57,16 +57,23 @@ function love.mousepressed(x, y, button, istouch, presses)
     x, y : mouse position when mouse is pressesd
     button : which button is pressed (1:primary, 2:secondary, 3:middle)
   ]]
-  if button == 1 and gameState == 2 then
+  if gameState == 2 then
     local distanceBetweenMouseToTarget = 
                 distanceBetween(x, y, target.x, target.y)
     if distanceBetweenMouseToTarget < target.radius then
       -- mouse is over the target
-      score = score + 1
+      if button == 1 then
+        score = score + 1
+      elseif button == 2 then
+        score = score + 2
+        timer = timer - 1
+        end
       target.x = math.random(target.radius, 
                               love.graphics.getWidth() - target.radius)
       target.y = math.random(target.radius + 50, 
                               love.graphics.getHeight() - target.radius)
+    elseif distanceBetweenMouseToTarget > target.radius and score > 0 then
+      score = score - 1
     end
   elseif button == 1 and gameState == 1 then
     gameState = 2
