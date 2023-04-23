@@ -16,6 +16,13 @@ function love.load()
   -- tables
   zombies = {}
   bullets = {}
+
+  -- game state; 1: menu, 2: gameplay
+  gameState = 2
+  -- max time of the spawn (zombiespawn time)
+  maxTime = 2
+  -- counting down
+  timer = maxTime
 end
 
 -- =================================UPDATE===================================================
@@ -46,10 +53,12 @@ function love.update(dt)
     -- use sin(radian angle) to get the y value that zombie will move to 
     z.y = z.y + (math.sin(angleBetweenPlayerAndZombie(z)) * z.speed  * dt)
 
+    -- collision between zombie and player
     if distanceBetween(z.x, z.y, player.x, player.y) < 30 then
       for i, z in ipairs(zombies) do
         -- remove table element by assigning the nil value to the table element
         zombies[i] = nil
+        gameState = 1
       end
     end
   end
@@ -95,6 +104,18 @@ function love.update(dt)
     local b = bullets[i]
     if b.dead == true then
       table.remove(bullets, i)
+    end
+  end
+
+  -- timer and max time
+  if gameState == 2 then
+    -- timer countdown
+    timer = timer - dt
+    -- when timer reach 0 trigger the spawnZombie function and reset timer
+    if timer <= 0 then
+      spawnZombie()
+      maxTime = 0.95 * maxTime
+      timer = maxTime
     end
   end
 end
