@@ -1,5 +1,8 @@
 -- =================================LOAD====================================================
 function love.load()
+  -- random seed from host operating system time
+  math.randomseed(os.time())
+
   -- sprites
   sprites = {}
   sprites.background = love.graphics.newImage('sprites/background.png')
@@ -13,37 +16,43 @@ function love.load()
   player.y = love.graphics.getHeight() / 2
   player.speed = 210
 
+  myFont = love.graphics.newFont(30)
+
   -- tables
   zombies = {}
   bullets = {}
 
   -- game state; 1: menu, 2: gameplay
-  gameState = 2
+  gameState = 1
   -- max time of the spawn (zombiespawn time)
   maxTime = 2
   -- counting down
   timer = maxTime
+  score = 0
 end
 
 -- =================================UPDATE===================================================
 function love.update(dt)
-  -- movement
-  -- mutiply dt to make the movement framerate independent
-  -- check if key is down continually
-  if love.keyboard.isDown("d") then
-    player.x = player.x + player.speed * dt
-  end
+  -- playable when gamestate is 2 only
+  if gameState == 2 then
+    -- movement
+    -- mutiply dt to make the movement framerate independent
+    -- check if key is down continually
+    if love.keyboard.isDown("d") and player.x < love.graphics.getWidth() then
+      player.x = player.x + player.speed * dt
+    end
 
-  if love.keyboard.isDown("a") then
-    player.x = player.x - player.speed * dt
-  end
+    if love.keyboard.isDown("a") and player.x > 0 then
+      player.x = player.x - player.speed * dt
+    end
 
-  if love.keyboard.isDown("w") then
-    player.y = player.y - player.speed * dt
-  end
-  
-  if love.keyboard.isDown("s") then
-    player.y = player.y + player.speed * dt
+    if love.keyboard.isDown("w") and player.y > 0 then
+      player.y = player.y - player.speed * dt
+    end
+    
+    if love.keyboard.isDown("s") and player.y < love.graphics.getHeight() then
+      player.y = player.y + player.speed * dt
+    end
   end
 
   -- zombies walk
@@ -59,6 +68,8 @@ function love.update(dt)
         -- remove table element by assigning the nil value to the table element
         zombies[i] = nil
         gameState = 1
+        player.x = love.graphics.getWidth() / 2
+        player.y = love.graphics.getHeight() / 2
       end
     end
   end
@@ -87,6 +98,7 @@ function love.update(dt)
       if distanceBetween(z.x, z.y, b.x, b.y) < 20 then
         z.dead = true
         b.dead = true
+        score = score + 1
       end
     end
   end
@@ -123,6 +135,15 @@ end
 -- =================================DRAW====================================================
 function love.draw()
   love.graphics.draw(sprites.background, 0, 0)
+
+  if gameState == 1 then
+    love.graphics.setFont(myFont)
+    love.graphics.printf("Click anywhere to begin!", 0, 70, love.graphics.getWidth(), "center")
+  end
+
+  -- print score
+  love.graphics.printf("Score: " .. score, 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "center")
+
   love.graphics.draw(sprites.player, player.x, player.y, angleBetweenPlayerAndMouse(), 
                       nil, nil, sprites.player:getWidth()/2, sprites.player:getHeight()/2)
 
@@ -147,8 +168,13 @@ end
 
 -- run when mouose is pressed once
 function love.mousepressed(x, y, button)
-  if button == 1 then
+  if button == 1 and gameState == 2 then
     spawnBullet()
+  elseif button == 1 and gameState == 1 then
+    gameState = 2
+    maxTime = 2
+    timer = maxTime
+    score = 0
   end
 end
 
