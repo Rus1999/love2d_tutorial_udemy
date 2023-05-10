@@ -1,5 +1,19 @@
 -- **********************LOAD************************
 function love.load()
+  anim8 = require 'libraries/anim8/anim8'
+
+  sprites = {}
+  sprites.playerSheet = love.graphics.newImage('sprites/playerSheet.png')
+
+  -- newGrid(width, height, spritesSheetWidth, spritesSheetHeight)
+  local grid = anim8.newGrid(614, 564, sprites.playerSheet:getWidth(), sprites.playerSheet:getHeight())
+
+  animations = {}
+  -- newAnimation(grid('columnRange', row), FPS)
+  animations.idle = anim8.newAnimation(grid('1-15', 1), 0.05)
+  animations.jump = anim8.newAnimation(grid('1-7', 2), 0.05)
+  animations.run = anim8.newAnimation(grid('1-15', 3), 0.05)
+
   wf = require 'libraries/windfield/windfield'
   -- newWorld(gravityX, gravityY, sleep(not calculate physic when sleep))
   world = wf.newWorld(0, 800, false)
@@ -11,10 +25,15 @@ function love.load()
   world:addCollisionClass('Danger')
 
   -- collider = physics object 
-  -- new...Collider(x, y, width, height)
-  player = world:newRectangleCollider(360, 100, 80, 80, {collision_class = "Player"})
+  -- new...Collider(x, y, width, height, collision class)
+  player = world:newRectangleCollider(360, 100, 40, 100, {collision_class = "Player"})
   player:setFixedRotation(true)
   player.speed = 280
+  player.animation = animations.idle
+  player.isMoving = false
+  -- 1: right, -1: left
+  player.direction = 1
+  player.grounded = true
 
   -- platform
   platform = world:newRectangleCollider(250, 400, 300, 100, {collision_class = "Platform"})
@@ -31,6 +50,17 @@ function love.update(dt)
 
   -- if player body is exists
   if player.body then
+    -- detect platform on feet
+    local colliders = world:queryRectangleArea(player:getX() - 20, 
+    player:getY() + 50, 40, 2, {'Platform'})
+    if #colliders > 0 then
+      player.grounded = true
+    else
+      player.grounded = false
+    end
+
+    player.isMoving = false
+
     -- get player position 
     -- player:getPosition OR player:getX(), player:getY()
     -- to set player position 
@@ -38,9 +68,13 @@ function love.update(dt)
     local px, py = player:getPosition()
     if love.keyboard.isDown('right') then
       player:setX(px + player.speed * dt)
+      player.isMoving = true
+      player.direction = 1
     end
     if love.keyboard.isDown('left') then
       player:setX(px - player.speed * dt)
+      player.isMoving = true
+      player.direction = -1
     end
 
     -- player enter collider with 'Danger'
@@ -48,19 +82,35 @@ function love.update(dt)
       player:destroy()
     end
   end
+
+  if player.grounded then
+    if player.isMoving then
+      player.animation = animations.run
+    else
+      player.animation = animations.idle
+    end
+  else
+    player.animation = animations.jump
+  end
+
+  -- make animation update with framerate independent
+  player.animation:update(dt)
 end
 
 -- **********************DRAW************************
 function love.draw()
   world:draw()
+  
+  local px, py = player:getPosition()
+  -- draw(spriteSheet, x, y, rotation, xscale, yscale(x), horizontalOffset, verticalOffset)
+  player.animation:draw(sprites.playerSheet, px, py, nil, 0.25 * player.direction, 0.25, 130, 300)
 end
 
 -- **********************FUNCTION************************
 function love.keypressed(key)
   if key == 'up' then
-    local colliders = world:queryRectangleArea(player:getX() - 40, player:getY() + 40, 80, 2, {'Platform'})
-    if #colliders > 0 then
-      player:applyLinearImpulse(0, -5000)
+    if player.grounded then
+      player:applyLinearImpulse(0, -3500)
     end
   end
 end
