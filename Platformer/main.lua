@@ -1,10 +1,13 @@
 -- **********************LOAD************************
 function love.load()
-  -- setMode(windowWidth, windowHeight)
   love.window.setMode(1000, 768)
 
   anim8 = require 'libraries/anim8/anim8'
   sti = require 'libraries/Simple-Tiled-Implementation/sti'
+  cameraFile = require 'libraries/hump/camera'
+
+  -- create camera object
+  cam = cameraFile()
 
   sprites = {}
   sprites.playerSheet = love.graphics.newImage('sprites/playerSheet.png')
@@ -28,16 +31,12 @@ function love.load()
   world:addCollisionClass('Player'--[[ , {ignores = {'Platform'}} ]])
   world:addCollisionClass('Danger')
 
-  -- import player.lua
   require('player')
 
-  -- platform
-  platform = world:newRectangleCollider(250, 400, 300, 100, {collision_class = "Platform"})
-  platform:setType('static')
+  -- dangerZone = world:newRectangleCollider(0, 550, 800, 50, {collision_class = "Danger"})
+  -- dangerZone:setType('static')
 
-  -- danger
-  dangerZone = world:newRectangleCollider(0, 550, 800, 50, {collision_class = "Danger"})
-  dangerZone:setType('static')
+  platforms = {}
 
   loadMap()
 end
@@ -47,13 +46,19 @@ function love.update(dt)
   world:update(dt)
   gameMap:update(dt)
   playerUpdate(dt)
+
+  local px, py = player:getPosition()
+  cam:lookAt(px ,love.graphics.getHeight()/2)
 end
 
 -- **********************DRAW************************
 function love.draw()
-  gameMap:drawLayer(gameMap.layers["Tile Layer 1"])
-  world:draw()
-  drawPlayer()
+  -- draw object where the camera is
+  cam:attach()
+    gameMap:drawLayer(gameMap.layers["Tile Layer 1"])
+    world:draw()
+    drawPlayer()
+  cam:detach()
 end
 
 -- **********************FUNCTION************************
@@ -75,6 +80,17 @@ function love.mousepressed(x, y, button)
   end
 end
 
+function spawnPlatform(x, y, width, height)
+  if width > 0 and height > 0 then
+    local platform = world:newRectangleCollider(x, y, width, height, {collision_class = "Platform"})
+    platform:setType('static')
+    table.insert(platforms, platform)
+  end
+end
+
 function loadMap()
   gameMap = sti('maps/level1.lua')
+  for i, obj in pairs(gameMap.layers["Platforms"].objects) do
+    spawnPlatform(obj.x, obj.y, obj.width, obj.height)
+  end
 end
